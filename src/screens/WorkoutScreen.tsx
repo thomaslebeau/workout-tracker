@@ -2,14 +2,18 @@ import React, { useEffect, useRef, useCallback } from "react";
 import {
   Text,
   TextInput,
-  Button,
   StyleSheet,
   ScrollView,
   Alert,
   Animated,
+  View,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useWorkoutStore } from "../stores/workoutStore";
+import { colors, spacing, typography } from "../theme";
+import SystemCard from "../components/SystemCard";
+import SystemButton from "../components/SystemButton";
+import WorkoutSelector from "../components/WorkoutSelector";
 
 function AnimatedRoundCard({
   roundData,
@@ -25,54 +29,54 @@ function AnimatedRoundCard({
   onInputChange: (roundIndex: number, exerciseId: string, value: string) => void;
 }) {
   const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(30)).current;
+  const translateX = useRef(new Animated.Value(-8)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 400,
-        delay: roundIndex * 100,
+        duration: 200,
+        delay: roundIndex === 0 ? 0 : 50,
         useNativeDriver: true,
       }),
-      Animated.spring(translateY, {
+      Animated.timing(translateX, {
         toValue: 0,
-        delay: roundIndex * 100,
+        duration: 200,
+        delay: roundIndex === 0 ? 0 : 50,
         useNativeDriver: true,
-        damping: 15,
-        stiffness: 120,
-        mass: 1,
       }),
     ]).start();
   }, []);
 
   return (
-    <Animated.View
-      style={[
-        styles.roundCard,
-        isLatest && styles.latestRoundCard,
-        { opacity, transform: [{ translateY }] },
-      ]}
-    >
-      <Text style={styles.roundTitle}>Round {roundIndex + 1}</Text>
-      {exercises.map((exercise) => (
-        <Animated.View key={exercise.id} style={styles.exerciseRow}>
-          <Text style={styles.exerciseName}>{exercise.name}</Text>
-          <TextInput
-            style={styles.input}
-            keyboardType="numeric"
-            placeholder="Reps"
-            value={
-              roundData[exercise.id] != null
-                ? String(roundData[exercise.id])
-                : ""
-            }
-            onChangeText={(value) =>
-              onInputChange(roundIndex, exercise.id, value)
-            }
-          />
-        </Animated.View>
-      ))}
+    <Animated.View style={{ opacity, transform: [{ translateX }] }}>
+      <SystemCard
+        style={[
+          styles.roundCard,
+          isLatest && styles.latestRoundCard,
+        ]}
+      >
+        <Text style={styles.roundTitle}>ROUND {roundIndex + 1}</Text>
+        {exercises.map((exercise) => (
+          <View key={exercise.id} style={styles.exerciseRow}>
+            <Text style={styles.exerciseName}>{exercise.name}</Text>
+            <TextInput
+              style={styles.input}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor={colors.textMuted}
+              value={
+                roundData[exercise.id] != null
+                  ? String(roundData[exercise.id])
+                  : ""
+              }
+              onChangeText={(value) =>
+                onInputChange(roundIndex, exercise.id, value)
+              }
+            />
+          </View>
+        ))}
+      </SystemCard>
     </Animated.View>
   );
 }
@@ -81,7 +85,7 @@ export default function WorkoutScreen() {
   const {
     exercises,
     currentSession,
-    loadExercises,
+    loadWorkouts,
     startNewRound,
     saveRoundData,
     finishWorkout,
@@ -95,15 +99,15 @@ export default function WorkoutScreen() {
       buttonsOpacity.setValue(0);
       Animated.timing(buttonsOpacity, {
         toValue: 1,
-        duration: 400,
-        delay: 200,
+        duration: 200,
+        delay: 100,
         useNativeDriver: true,
       }).start();
     }, [])
   );
 
   useEffect(() => {
-    loadExercises();
+    loadWorkouts();
   }, []);
 
   const handleInputChange = (
@@ -123,7 +127,12 @@ export default function WorkoutScreen() {
   };
 
   return (
-    <ScrollView ref={scrollViewRef} style={styles.container}>
+    <ScrollView
+      ref={scrollViewRef}
+      style={styles.container}
+      contentContainerStyle={styles.content}
+    >
+      <WorkoutSelector />
       {currentSession.rounds.map((roundData, roundIndex) => {
         const isLatest = roundIndex === currentSession.currentRound;
         return (
@@ -138,14 +147,14 @@ export default function WorkoutScreen() {
         );
       })}
       <Animated.View style={[styles.buttonContainer, { opacity: buttonsOpacity }]}>
-        <Button title="Next Round" onPress={handleNextRound} />
-        <Button
-          title="Finish Workout"
+        <SystemButton title="ROUND SUIVANT" onPress={handleNextRound} variant="ghost" />
+        <SystemButton
+          title="TERMINER"
           onPress={() => {
             const xp = finishWorkout();
-            Alert.alert("Workout complete!", `You earned +${xp} XP!`);
+            Alert.alert("SESSION ENREGISTRÉE", `+${xp} XP ACQUIS`);
           }}
-          color="green"
+          variant="primary"
         />
       </Animated.View>
     </ScrollView>
@@ -155,48 +164,46 @@ export default function WorkoutScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    backgroundColor: colors.bgPrimary,
+  },
+  content: {
+    padding: spacing.md,
+    paddingBottom: spacing.xxl,
   },
   roundCard: {
-    marginBottom: 16,
-    padding: 12,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#e0e0e0",
+    marginBottom: spacing.sm + 4,
   },
   latestRoundCard: {
-    borderColor: "#4a90e2",
-    borderWidth: 2,
+    borderColor: colors.borderActive,
   },
   roundTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 12,
+    ...typography.heading,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
   },
   exerciseRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   exerciseName: {
-    fontSize: 16,
+    ...typography.body,
+    color: colors.textPrimary,
     flex: 1,
   },
   input: {
     borderWidth: 1,
-    borderColor: "#ddd",
-    backgroundColor: "#fff",
-    padding: 8,
-    borderRadius: 4,
-    fontSize: 16,
+    borderColor: colors.border,
+    backgroundColor: colors.bgSecondary,
+    padding: spacing.sm,
     width: 80,
-    textAlign: "center",
+    textAlign: "right",
+    ...typography.mono,
+    color: colors.textPrimary,
   },
   buttonContainer: {
-    marginTop: 8,
-    marginBottom: 40,
-    gap: 10,
+    marginTop: spacing.md,
+    gap: spacing.sm + 4,
   },
 });

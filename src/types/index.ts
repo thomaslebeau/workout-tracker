@@ -12,11 +12,19 @@ export interface WorkoutSet {
   workoutSessionId: string;
 }
 
+export interface Workout {
+  id: number;
+  name: string;
+  exerciseIds: string[];
+  rounds: number;
+}
+
 export interface WorkoutSession {
   id: string;
   date: string;
   totalRounds: number;
   totalVolume: number;
+  workoutId?: number | null;
 }
 
 export interface UserProfile {

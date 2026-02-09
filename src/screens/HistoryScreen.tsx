@@ -1,9 +1,12 @@
 import React, { useCallback, useState, useRef, useEffect } from "react";
-import { Text, StyleSheet, Button, Alert, Animated } from "react-native";
+import { Text, View, StyleSheet, Alert, Animated } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { getWorkoutHistory, deleteWorkoutSession } from "../database/db";
 import type { WorkoutSession } from "../types";
 import { format } from "date-fns";
+import { colors, spacing, typography } from "../theme";
+import SystemCard from "../components/SystemCard";
+import SystemButton from "../components/SystemButton";
 
 function AnimatedSessionCard({
   item,
@@ -15,44 +18,48 @@ function AnimatedSessionCard({
   onDelete: (id: string) => void;
 }) {
   const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(-20)).current;
+  const translateX = useRef(new Animated.Value(-8)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(opacity, {
         toValue: 1,
-        duration: 400,
-        delay: index * 80,
+        duration: 200,
+        delay: index * 60,
         useNativeDriver: true,
       }),
-      Animated.spring(translateY, {
+      Animated.timing(translateX, {
         toValue: 0,
-        delay: index * 80,
+        duration: 200,
+        delay: index * 60,
         useNativeDriver: true,
-        damping: 15,
-        stiffness: 120,
-        mass: 1,
       }),
     ]).start();
   }, []);
 
   return (
-    <Animated.View
-      style={[
-        styles.sessionCard,
-        { opacity, transform: [{ translateY }] },
-      ]}
-    >
-      <Text style={styles.date}>{format(new Date(item.date), "PPP")}</Text>
-      <Animated.View style={styles.statsRow}>
-        <Text style={styles.stat}>Rounds: {item.totalRounds}</Text>
-        <Text style={styles.stat}>Total Volume: {item.totalVolume} reps</Text>
-      </Animated.View>
-      <Button
-        title="Delete"
-        onPress={() => onDelete(item.id)}
-        color="red"
-      />
+    <Animated.View style={{ opacity, transform: [{ translateX }] }}>
+      <SystemCard style={styles.sessionCard}>
+        <Text style={styles.date}>
+          {format(new Date(item.date), "PPP").toUpperCase()}
+        </Text>
+        <View style={styles.statsRow}>
+          <View>
+            <Text style={styles.statLabel}>ROUNDS</Text>
+            <Text style={styles.statValue}>{item.totalRounds}</Text>
+          </View>
+          <View>
+            <Text style={styles.statLabel}>VOLUME</Text>
+            <Text style={styles.statValue}>{item.totalVolume}</Text>
+          </View>
+        </View>
+        <SystemButton
+          title="Delete"
+          onPress={() => onDelete(item.id)}
+          variant="destructive"
+          style={{ marginTop: spacing.sm }}
+        />
+      </SystemCard>
     </Animated.View>
   );
 }
@@ -74,7 +81,7 @@ export default function HistoryScreen() {
   };
 
   const handleDelete = (sessionId: string) => {
-    Alert.alert("Delete session", "Are you sure you want to delete this workout session?", [
+    Alert.alert("CONFIRM DELETION", "This session will be permanently erased.", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
@@ -93,6 +100,9 @@ export default function HistoryScreen() {
       style={styles.container}
       contentContainerStyle={styles.list}
     >
+      {sessions.length === 0 && (
+        <Text style={styles.emptyText}>NO RECORDS FOUND</Text>
+      )}
       {sessions.map((item, index) => (
         <AnimatedSessionCard
           key={`${item.id}-${refreshKey}`}
@@ -108,28 +118,37 @@ export default function HistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: colors.bgPrimary,
   },
   list: {
-    padding: 20,
+    padding: spacing.md,
+    paddingBottom: spacing.xxl,
+  },
+  emptyText: {
+    ...typography.body,
+    color: colors.textMuted,
+    textAlign: "center",
+    marginTop: spacing.xxl,
   },
   sessionCard: {
-    backgroundColor: "#f5f5f5",
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: spacing.sm + 4,
   },
   date: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 8,
+    ...typography.bodySm,
+    color: colors.textSecondary,
+    marginBottom: spacing.sm,
   },
   statsRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    gap: spacing.xl,
   },
-  stat: {
-    fontSize: 14,
-    color: "#666",
+  statLabel: {
+    ...typography.monoSm,
+    color: colors.textMuted,
+    textTransform: "uppercase",
+  },
+  statValue: {
+    ...typography.displayMd,
+    color: colors.textPrimary,
   },
 });
